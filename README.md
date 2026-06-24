@@ -2,7 +2,7 @@
 
 > A tactical, space-themed trajectory planning and task monitoring console — featuring an interactive Canvas particle field and a defensive multi-model API rotation system.
 
-🔗 **Live App:** `<ADD DEPLOYED GOOGLE CLOUD URL HERE>`
+🔗 **Live App:** `[<ADD DEPLOYED GOOGLE CLOUD URL HERE>](https://agent-orbit.web.app/)`
 📂 **Repository:** `https://github.com/THOUSIFAHMEDR/Agent-orbit`
 
 ---
