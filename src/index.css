@@ -20,27 +20,45 @@ body {
   background-color: #02040a;
 }
 
-/* --- THE PREMIUM GLASS CARD --- */
-.glass-card {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* --- THE PREMIUM SUBTLE GRAPH GRID --- */
+.scifi-grid {
+  position: absolute;
+  inset: 0;
+  background-size: 60px 60px;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  z-index: 1;
+  pointer-events: none;
 }
 
-.glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.02);
+/* --- THE DEFINITIVE GLASS CARD & TACTICAL CHASSIS --- */
+.glass-card,
+.scifi-chassis {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* --- BRIGHT GLASS INPUTS --- */
+.glass-card:hover,
+.scifi-chassis:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 12px 40px 0 rgba(59, 130, 246, 0.08) !important;
+}
+
+/* --- TACTICAL FORM CONTROLS (BRIGHT GLASS OVERRIDES) --- */
+.scifi-input,
+.scifi-textarea,
 .glass-input,
 .glass-textarea {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   /* Bright frosted glass */
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: #ffffff !important;
   /* Force bright text */
   border-radius: 8px !important;
@@ -48,18 +66,19 @@ body {
   transition: all 0.2s ease !important;
 }
 
+.scifi-input:focus,
+.scifi-textarea:focus,
 .glass-input:focus,
 .glass-textarea:focus {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.08) !important;
   outline: none !important;
 }
 
 /* CRISP BRIGHT WHITE CALENDAR ICON FIX */
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(1) !important;
-  /* Inverts standard dark icon to clean, bright white */
   cursor: pointer;
   opacity: 0.7;
   transition: opacity 0.2s ease;
@@ -69,13 +88,41 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
 
-/* --- PREMIUM LOG TERMINAL --- */
+/* --- PREMIUM TACTICAL TERMINAL --- */
+.scifi-terminal,
 .premium-terminal {
-  background: rgba(3, 7, 18, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 12px;
+  position: relative;
+  background: rgba(15, 23, 42, 0.45) !important;
+  /* Translucent slate-glass tint */
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   overflow: hidden;
-  backdrop-filter: blur(16px);
+}
+
+.scifi-badge-cyan {
+  background: rgba(0, 240, 255, 0.05);
+  border: 1px solid rgba(0, 240, 246, 0.15);
+  color: #00f0ff;
+}
+
+/* --- NEURAL SCAN LINES --- */
+.scanline {
+  @apply absolute top-0 left-0 w-full h-[1px] pointer-events-none opacity-15 z-40;
+  background: linear-gradient(to bottom, transparent, #00f0ff, transparent);
+  animation: scanline 12s linear infinite;
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
 /* --- SILK GLOW SCROLLBAR --- */
@@ -93,5 +140,5 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.4);
+  background: #00f0ff;
 }

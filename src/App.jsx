@@ -16,12 +16,12 @@ import './index.css';
 
 // --- TELEMETRY COLOR STYLES ---
 const getMissionStatus = (tasks) => {
-  if (tasks.length === 0) return { label: "[ STANDBY_MODE ]", color: "text-slate-500 border-slate-800 bg-slate-950/40" };
+  if (tasks.length === 0) return { label: "SYSTEM STANDBY", color: "text-slate-400 border-white/5 bg-white/[0.02]" };
   const allSubtasks = tasks.flatMap(t => t.subtasks);
   const doneCount = allSubtasks.filter(st => st.status === 'done').length;
   const total = allSubtasks.length;
-  if (doneCount === total && total > 0) return { label: "[ SECURED ]", color: "text-green-400 border-green-500/20 bg-green-500/5 shadow-[0_0_10px_rgba(34,197,94,0.15)]" };
-  return { label: `[ EXECUTING: ${doneCount}/${total}_NODES ]`, color: "text-[#00f0ff] border-[#00f0ff]/20 bg-cyan-500/5 shadow-[0_0_10px_rgba(0,240,255,0.15)]" };
+  if (doneCount === total && total > 0) return { label: "MISSION SECURED", color: "text-emerald-400 border-emerald-500/10 bg-emerald-500/5 shadow-[0_0_10px_rgba(16,185,129,0.15)]" };
+  return { label: `EXECUTING: ${doneCount}/${total}_NODES`, color: "text-blue-400 border-white/10 bg-white/[0.02]" };
 };
 
 const calculateTimeline = (subtasks) => {
@@ -137,20 +137,20 @@ function App() {
       const result = await replanTask(task.subtasks, subtask.title, 'System Anomaly');
       const stuckIndex = task.subtasks.findIndex(st => st.id === subtaskId);
 
-      // 1. PRESERVE THE PAST: Keep all completed subtasks before the blockage
+      // PRESERVE THE PAST
       const preservedBefore = task.subtasks.slice(0, stuckIndex);
 
-      // 2. PRESERVE THE FUTURE: Keep all remaining pending subtasks after the blockage
+      // PRESERVE THE FUTURE
       const preservedAfter = task.subtasks.slice(stuckIndex + 1);
 
-      // 3. MAP THE NEW RECOVERY STEPS: Map the new AI recovery steps as pending
+      // MAP THE NEW RECOVERY STEPS
       const newSubtasks = result.updatedSubtasks.map(s => ({
         ...s,
         id: uuidv4(),
         status: 'pending'
       }));
 
-      // 4. COMBINE IN ORDER: [Completed Past] + [New Recovery Nodes] + [Remaining Future Nodes]
+      // COMBINE IN ORDER
       const mergedSubtasks = [...preservedBefore, ...newSubtasks, ...preservedAfter];
       const updatedWithTime = calculateTimeline(mergedSubtasks);
 
@@ -177,13 +177,13 @@ function App() {
     const task = tasks.find(t => t.id === taskId);
     const text = task.intervention;
 
-    // Copy to clipboard
+    // Real Action: Copy to clipboard
     navigator.clipboard.writeText(text);
 
     addLog("AGENT ACTION: Intervention text copied to clipboard.");
     addLog("SYSTEM: Launching external communication protocol...");
 
-    // Open Mail client
+    // Open Mail client with the draft
     window.location.href = `mailto:?subject=Project Alert: ${task.goal}&body=${encodeURIComponent(text)}`;
 
     setTimeout(() => {
@@ -236,13 +236,16 @@ function App() {
   let themeSpeed = 0.2;
   let particleColor = "#00f0ff"; // Default Orbit Blue
 
-  if (currentStatus === "[ SECURED ]") {
+  if (currentStatus === "MISSION SECURED" || currentStatus === "MISSION COMPLETE") {
     themeSpeed = 0.05;
     particleColor = "#10b981"; // Success Green
   } else if (tasks.some(t => t.intervention)) {
     themeSpeed = 1.3;
     particleColor = "#ffaa00"; // Alert Amber
   }
+
+  // PURE BOOLEAN SUCCESS METRIC (IMMUNE TO STRING ERRORS!)
+  const isMissionSecured = tasks.length > 0 && tasks.every(t => t.subtasks.every(st => st.status === 'done'));
 
   const allSubtasks = tasks.flatMap(t => t.subtasks);
   const doneCount = allSubtasks.filter(s => s.status === 'done').length;
@@ -296,11 +299,7 @@ function App() {
             <span className="font-extrabold text-sm sm:text-base tracking-wider uppercase">AGENT_ORBIT</span>
           </div>
 
-          <button
-            onClick={clearAll}
-            aria-label="Purge console memory banks"
-            className="bg-gray-900 text-white text-[11px] font-bold px-4 py-2 rounded-full hover:bg-gray-800 transition-colors uppercase tracking-widest shadow min-h-[44px] cursor-pointer"
-          >
+          <button onClick={clearAll} className="bg-gray-900 text-white text-[11px] font-bold px-4 py-2 rounded-full hover:bg-gray-800 transition-colors uppercase tracking-widest shadow">
             Purge Deck
           </button>
         </div>
@@ -309,7 +308,7 @@ function App() {
       {/* LANDING CONTENT MATRIX */}
       <div className="flex-1 min-h-8 sm:min-h-12 lg:min-h-16 shrink-0" />
 
-      <main className="relative z-10 max-w-4xl mx-auto w-full px-5 sm:px-8 text-center flex flex-col items-center">
+      <div className="relative z-10 max-w-4xl mx-auto w-full px-5 sm:px-8 text-center flex flex-col items-center">
         <h1 className="text-gray-900 font-normal leading-[1.05] tracking-tight text-[40px] min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
           <span className="block animate-fade-up">Deploy Agent.</span>
           <span className="block animate-fade-up [animation-delay:100ms] text-gray-800">Optimize Trajectory.</span>
@@ -324,9 +323,7 @@ function App() {
           className="animate-fade-up [animation-delay:220ms] mt-5 sm:mt-6 w-full max-w-xl"
         >
           <div className="flex items-center gap-3 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-gray-200/50 pl-5 pr-1.5 py-1.5 shadow-lg shadow-gray-200/5">
-            <label htmlFor="hero-goal-input" className="sr-only">Mission Trajectory Goal</label>
             <input
-              id="hero-goal-input"
               type="text"
               placeholder="Input primary mission trajectory..."
               value={heroInput}
@@ -335,38 +332,115 @@ function App() {
                 setInput(prev => ({ ...prev, goal: e.target.value }));
               }}
               style={{ background: 'transparent', border: 'none' }}
-              className="flex-1 bg-transparent text-sm sm:text-base text-gray-900 placeholder-gray-500 outline-none py-2 font-mono"
+              className="flex-1 bg-transparent text-sm sm:text-base text-gray-900 placeholder-gray-500 outline-none py-2"
             />
 
             {/* INTEGRATED MIC TRIGGER */}
             <button
               type="button"
               onClick={startListening}
-              aria-label="Activate voice goal tracking input"
-              className={`p-2 rounded-full transition-all flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer ${isListeningUI ? 'bg-red-500 text-white animate-bounce' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
+              className={`p-2 rounded-full transition-all flex items-center justify-center ${isListeningUI ? 'bg-red-500 text-white animate-bounce' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
             >
               <Mic className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
             </button>
 
             <button
               type="submit"
-              aria-label="Submit trajectory deployment"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-900 text-white hover:scale-105 active:scale-95 transition-transform shrink-0 flex items-center justify-center shadow-md min-h-[44px] min-w-[44px] cursor-pointer"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-900 text-white hover:scale-105 active:scale-95 transition-transform shrink-0 flex items-center justify-center shadow-md animate-pulse cursor-pointer"
             >
               <ArrowUp className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
             </button>
           </div>
         </form>
 
-        <p className="animate-fade-up [animation-delay:340ms] mt-4 sm:mt-5 text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed max-w-md font-sans">
+        <p className="animate-fade-up [animation-delay:340ms] mt-4 sm:mt-5 text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed max-w-md">
           Calculate scheduled workflows automatically -- and trigger <Sparkles className="inline w-4 h-4 -mt-1 text-amber-500 animate-pulse" /> Self-Healing backup intervention protocols
         </p>
-      </main>
+      </div>
 
       <div className="flex-1 min-h-10 sm:min-h-12 lg:min-h-16 shrink-0" />
 
-      {/* LOWER RESPONSIVE MOCKUP WINDOW */}
-      <div className="animate-hero-rise [animation-delay:620ms] relative z-20 w-[92%] sm:w-[84%] lg:w-[72%] max-w-4xl mx-auto shrink-0 -mb-10 sm:-mb-20 lg:-mb-32">
+      {/* MOBILE NATIVE CONSOLE VIEWPORT (Only visible on screens < lg) */}
+      <div className="block lg:hidden w-[92%] max-w-xl mx-auto space-y-6 relative z-20 mb-16">
+
+        {/* MOBILE HUD STATUS PANEL (UPDATED TO GLASS DESIGN) */}
+        <div className="flex justify-between items-center p-4 glass-card text-[10px] font-black uppercase tracking-widest text-[#00f0ff] bg-cyan-950/10">
+          <div className="flex items-center gap-3">
+            <span>Decks: {getMissionStatus(tasks).label}</span>
+            <span className="text-slate-500 font-bold">LAT: {coords.lat}°</span>
+          </div>
+          <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+        </div>
+
+        {/* MOBILE ACTIVE TRAJECTORY PLAN */}
+        {tasks.length === 0 ? (
+          /* UPDATED TO SEMI-TRANSPARENT GLASS STATE CARD */
+          <div className="glass-card border-dashed border-white/10 rounded-xl h-44 flex flex-col items-center justify-center text-white/40 font-bold text-[8px] uppercase tracking-wider">
+            <Terminal size={18} className="mb-2 opacity-20" />
+            No Trajectory Active
+          </div>
+        ) : (
+          tasks.map(t => (
+            <div key={t.id} className="glass-card overflow-hidden bg-slate-950/50 border-white/5 p-4 space-y-4">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-white border-b border-white/5 pb-2">
+                {t.goal}
+              </h3>
+              <div className="space-y-3">
+                {t.subtasks.map((st, index) => (
+                  <div key={st.id} className="p-4 rounded-xl border border-white/5 bg-white/[0.01] relative">
+                    {t.subtasks.find(s => s.status === 'pending')?.id === st.id && (
+                      <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-cyan-400 shadow-[0_0_10px_#00f0ff] animate-pulse" />
+                    )}
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-[8px] font-black mb-1">
+                          <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE 0{index + 1}</span>
+                          <span className="text-slate-600">{st.scheduledStart}</span>
+                        </div>
+                        <p className={`text-xs mt-1 ${st.status === 'done' ? 'line-through text-slate-700' : 'text-slate-200'}`}>
+                          {st.title}
+                        </p>
+                      </div>
+                      <button onClick={() => handleGuideMe(st.title, t.context)} className="p-1.5 text-slate-500 hover:text-cyan-400"><Lightbulb size={14} /></button>
+                    </div>
+                    {st.status === 'pending' && (
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={() => handleMarkDone(t.id, st.id)} className="flex-1 text-[9px] bg-green-500/10 text-green-400 border border-green-500/20 py-2 rounded-lg font-bold">DONE</button>
+                        <button onClick={() => handleStuck(t.id, st.id)} className="flex-1 text-[9px] bg-red-500/10 text-red-500 border border-red-500/20 py-2 rounded-lg font-bold">STUCK</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {t.intervention && (
+                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-lg mt-3">
+                  <p className="text-[9px] italic text-amber-200/70 mb-3">"{t.intervention}"</p>
+                  <button onClick={() => handleExecuteIntervention(t.id)} className="w-full bg-amber-500 text-black py-2 rounded text-[9px] font-bold">DEPLOY_CORRECTION</button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+
+        {/* MOBILE REAL-TIME TELEMETRY LOGS (UPDATED TO GLASS DESIGN) */}
+        <div className="premium-terminal p-4 h-64 flex flex-col justify-between">
+          <span className="text-yellow-500 text-[9px] font-black uppercase tracking-wider mb-2">[ log_history ]</span>
+          <div className="flex-1 overflow-y-auto space-y-2 font-mono text-[8px] leading-relaxed text-slate-500 h-full">
+            {logs.slice(0, 15).map((log, i) => {
+              const isAgent = log.includes('Anomaly') || log.includes('Traj') || log.includes('Success');
+              return (
+                <div key={i} className={`flex gap-1.5 border-l pl-1.5 ${isAgent ? 'border-cyan-500/40' : 'border-white/5'}`}>
+                  <span className={isAgent ? 'text-cyan-400' : 'text-slate-400'}>{log.split(']')[1]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+
+      {/* LOWER DESKTOP RESPONSIVE MOCKUP WINDOW (Only visible on screens >= lg) */}
+      <div className="hidden lg:block animate-hero-rise [animation-delay:620ms] relative z-20 w-[92%] sm:w-[84%] lg:w-[72%] max-w-4xl mx-auto shrink-0 -mb-10 sm:-mb-20 lg:-mb-32">
         <ScaledDashboard>
 
           {/* THE MOCK BROWSER CHROME FRAME */}
@@ -401,15 +475,15 @@ function App() {
               </div>
             </div>
 
-            {/* INTEGRATED LIVE DASHBOARD VIEW */}
-            <div className="flex flex-1 min-h-0 bg-[#02040a]">
+            {/* INTEGRATED LIVE DASHBOARD VIEW (NOW SEMI-TRANSPARENT BLUE TINT!) */}
+            <div className="flex flex-1 min-h-0 bg-[#0a0f1d]/45 backdrop-blur-md relative z-10">
               <div className="relative flex flex-col h-full w-full p-4 overflow-y-auto">
 
                 {/* HUD STATUS PANEL */}
-                <div className="flex justify-between items-center mb-4 border-b border-cyan-500/10 pb-3 text-[10px] font-black tracking-widest text-white uppercase">
+                <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-3 text-[10px] font-black tracking-widest text-white uppercase">
                   <div className="flex items-center gap-3">
                     <span>DECKS: {getMissionStatus(tasks).label}</span>
-                    <div className="flex gap-3 text-[8px] text-cyan-500/50 uppercase">
+                    <div className="flex gap-3 text-[8px] text-white/40">
                       <span>LAT: {coords.lat}°N</span>
                       <span>ALT: {coords.alt}km</span>
                     </div>
@@ -421,42 +495,30 @@ function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
 
                   {/* LEFT: MANUAL CONTROL INPUT */}
-                  <div className="lg:col-span-4 scifi-chassis p-4 flex flex-col justify-between">
+                  <div className="lg:col-span-4 glass-card p-4 flex flex-col justify-between">
                     <div className="space-y-4">
                       <div>
                         <h4 className="text-[9px] font-black tracking-widest text-white uppercase">[ manual_input_deck ]</h4>
-                        <p className="text-[8px] text-slate-500 uppercase mt-0.5">trajectory adjustments</p>
+                        <p className="text-[8px] text-white/35 uppercase mt-0.5">trajectory adjustments</p>
                       </div>
 
                       <div className="space-y-3">
                         <div className="relative">
-                          <label htmlFor="manual-goal-input" className="sr-only">Goal statement sequence</label>
                           <input
-                            id="manual-goal-input"
-                            className="scifi-input w-full p-2.5 text-[10px] outline-none"
+                            className="glass-input w-full p-2.5 text-[10px] outline-none"
                             placeholder="Goal statement sequence..."
                             value={input.goal}
                             onChange={(e) => setInput({ ...input, goal: e.target.value })}
                           />
                         </div>
-                        <div className="space-y-1">
-                          <label htmlFor="manual-deadline-input" className="sr-only">Chrono Deadline</label>
-                          <input
-                            id="manual-deadline-input"
-                            type="datetime-local"
-                            className="scifi-input w-full p-2 text-[10px] outline-none text-white font-medium"
-                            value={input.deadline}
-                            onChange={(e) => setInput({ ...input, deadline: e.target.value })}
-                          />
-                        </div>
+                        <input type="datetime-local" className="glass-input w-full p-2 text-[10px] outline-none text-slate-400" value={input.deadline} onChange={(e) => setInput({ ...input, deadline: e.target.value })} />
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleCreatePlan()}
                       disabled={loading || !input.goal}
-                      aria-label="Deploy core trajectory checklist"
-                      className="w-full mt-3 bg-cyan-950/20 hover:bg-cyan-400 border border-cyan-500/20 hover:border-cyan-400 hover:text-black text-cyan-400 py-2.5 rounded font-black text-[9px] uppercase tracking-widest transition-all min-h-[44px] cursor-pointer"
+                      className="w-full mt-3 bg-white/5 border border-white/10 hover:bg-white/15 text-white py-2.5 rounded-lg font-bold text-[9px] uppercase tracking-widest transition-all cursor-pointer"
                     >
                       {loading ? "MAPPING..." : "DEPLOY_DECK"}
                     </button>
@@ -465,22 +527,23 @@ function App() {
                   {/* CENTER: TIMELINE MONITOR */}
                   <div className="lg:col-span-5 flex flex-col min-h-0 overflow-y-auto">
                     {tasks.length === 0 && (
-                      <div className="border border-dashed border-cyan-500/10 rounded h-full flex flex-col items-center justify-center text-cyan-700 font-bold text-[8px] uppercase tracking-wider">
+                      /* UPDATED TO SEMI-TRANSPARENT GLASS CARD FOR DESKTOP */
+                      <div className="glass-card border-dashed border-white/10 rounded-xl h-full flex flex-col items-center justify-center text-white/30 font-bold text-[8px] uppercase tracking-wider">
                         Trajectory Inactive
                       </div>
                     )}
                     {tasks.map(t => (
-                      <div key={t.id} className="scifi-chassis overflow-hidden bg-slate-950/40 border-cyan-500/10 p-3 h-full overflow-y-auto">
+                      <div key={t.id} className="glass-card overflow-hidden border-white/5 p-3 h-full overflow-y-auto">
                         <div className="space-y-2">
                           {t.subtasks.map((st, index) => (
-                            <div key={st.id} className="group relative p-2.5 rounded border border-cyan-500/5 bg-cyan-950/5 hover:border-cyan-400/30 transition-all">
+                            <div key={st.id} className="group relative p-2.5 rounded border border-white/5 bg-white/[0.01] hover:border-white/15 transition-all">
                               {t.subtasks.find(s => s.status === 'pending')?.id === st.id && (
                                 <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-cyan-400 shadow-[0_0_10px_#00f0ff] animate-pulse" />
                               )}
                               <div className="flex justify-between items-start gap-2">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5 text-[7px] font-black">
-                                    <span className="scifi-badge-cyan px-1 py-0.2 rounded">NODE 0{index + 1}</span>
+                                    <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE 0{index + 1}</span>
                                     <span className="text-slate-600">{st.scheduledStart} — {st.scheduledEnd}</span>
                                   </div>
 
@@ -489,18 +552,14 @@ function App() {
                                     {st.title}
                                   </span>
                                 </div>
-                                <button
-                                  onClick={() => handleGuideMe(st.title, t.context)}
-                                  aria-label="Query node details"
-                                  className="p-1 text-slate-600 hover:text-cyan-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                                >
+                                <button onClick={() => handleGuideMe(st.title, t.context)} className="p-1 text-slate-600 hover:text-cyan-400 transition-colors">
                                   <Lightbulb size={10} />
                                 </button>
                               </div>
                               {st.status === 'pending' && (
                                 <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => handleMarkDone(t.id, st.id)} className="flex-1 text-[7px] bg-green-500/5 text-green-400 border border-green-500/10 py-1 rounded font-bold min-h-[44px] cursor-pointer">DONE</button>
-                                  <button onClick={() => handleStuck(t.id, st.id)} className="flex-1 text-[7px] bg-amber-500/5 text-amber-400 border border-amber-500/10 py-1 rounded font-bold min-h-[44px] cursor-pointer">STUCK</button>
+                                  <button onClick={() => handleMarkDone(t.id, st.id)} className="flex-1 text-[7px] bg-green-500/5 text-green-400 border border-green-500/10 py-1 rounded font-bold cursor-pointer">DONE</button>
+                                  <button onClick={() => handleStuck(t.id, st.id)} className="flex-1 text-[7px] bg-amber-500/5 text-amber-400 border border-amber-500/10 py-1 rounded font-bold cursor-pointer">STUCK</button>
                                 </div>
                               )}
                             </div>
@@ -509,18 +568,18 @@ function App() {
                         {t.intervention && (
                           <div className="mt-3 p-3 bg-amber-500/5 border border-amber-500/10 rounded">
                             <p className="text-[9px] italic text-amber-200/70 mb-2">"{t.intervention.substring(0, 100)}..."</p>
-                            <button onClick={() => handleExecuteIntervention(t.id)} className="w-full bg-amber-500 hover:bg-amber-400 text-black py-1.5 rounded text-[8px] font-bold min-h-[44px] cursor-pointer">DEPLOY_CORRECTION</button>
+                            <button onClick={() => handleExecuteIntervention(t.id)} className="w-full bg-amber-500 hover:bg-amber-400 text-black py-1.5 rounded text-[8px] font-bold cursor-pointer">DEPLOY_CORRECTION</button>
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
 
-                  {/* RIGHT: TELEMETRY STREAM */}
-                  <div className="lg:col-span-3 scifi-terminal flex flex-col h-full">
+                  {/* RIGHT: TELEMETRY STREAM (UPGRADED TO PREMIUM GLASS TERMINAL ON DESKTOP) */}
+                  <div className="lg:col-span-3 premium-terminal flex flex-col h-full">
 
                     {/* TACTICAL DIAGNOSTIC LINE */}
-                    <div className="flex justify-between items-center p-2 border-b border-cyan-500/10 font-mono text-[7px] tracking-wider text-cyan-400 select-none shrink-0">
+                    <div className="flex justify-between items-center p-2.5 bg-white/[0.02] border-b border-white/5 font-mono text-[7px] tracking-wider text-slate-400 select-none shrink-0">
                       <span>BUF: SECURE_PASS</span>
                       <span>LATENCY: 12ms</span>
                       <span>CORE_TEMP: 32.5°C</span>
@@ -554,7 +613,7 @@ function App() {
       </div>
 
       {/* DUAL BUTTON SUCCESS MODAL */}
-      {getMissionStatus(tasks).label === "[ SECURED ]" && (
+      {isMissionSecured && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-green-500/10 backdrop-blur-3xl animate-in fade-in duration-1000" role="dialog" aria-modal="true" aria-labelledby="success-title">
           <div className="text-center p-12 border border-green-500 rounded-3xl bg-[#030712]/95 shadow-[0_0_100px_rgba(34,197,94,0.25)] max-w-lg">
             <div className="inline-block p-4 bg-green-500/10 border border-green-500/30 text-green-400 rounded-full mb-6 animate-bounce">
@@ -566,15 +625,13 @@ function App() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={downloadMissionDebrief}
-                aria-label="Download final telemetry data report"
                 className="px-6 py-3.5 bg-green-950/40 hover:bg-green-500 hover:text-black text-green-400 border border-green-500/20 font-black rounded-lg transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 min-h-[48px] cursor-pointer"
               >
                 <Terminal size={14} /> Download Debrief
               </button>
               <button
                 onClick={clearAll}
-                aria-label="Wipe current console parameters and restart"
-                className="px-6 py-3.5 bg-green-600 hover:bg-green-500 text-white font-black rounded-lg transition-all text-xs uppercase tracking-widest min-h-[48px] cursor-pointer"
+                className="px-6 py-3.5 bg-green-600 hover:bg-green-500 text-white font-black rounded-lg transition-all text-xs uppercase tracking-widest cursor-pointer"
               >
                 Re-Initialize Console
               </button>
@@ -586,15 +643,15 @@ function App() {
       {/* DATABASE MODAL */}
       {guidance && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 z-[100]" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-          <div className="scifi-chassis p-8 max-w-sm w-full border border-cyan-500/20 shadow-2xl">
+          <div className="glass-card p-8 max-w-sm w-full border border-white/10 shadow-2xl">
             <div className="flex items-center gap-2 mb-4">
-              <Lightbulb size={18} className="text-cyan-400 animate-pulse" />
+              <Lightbulb size={18} className="text-blue-400 animate-pulse" />
               <h2 id="modal-title" className="text-white font-black uppercase tracking-widest text-xs">INTEL_DATABASE_BRIEF</h2>
             </div>
-            <div className="bg-black/40 p-5 border border-cyan-500/10 rounded mb-6 text-cyan-300 text-xs leading-relaxed font-mono italic">
+            <div className="bg-black/40 p-5 border border-white/5 rounded mb-6 text-slate-200 text-xs leading-relaxed font-mono italic">
               "{guidance.text}"
             </div>
-            <button onClick={() => setGuidance(null)} aria-label="Acknowledge database brief" className="w-full bg-cyan-950/20 hover:bg-cyan-400 border border-cyan-500/20 text-cyan-400 hover:text-black py-3 rounded font-black text-xs uppercase transition-all tracking-widest min-h-[48px] cursor-pointer">CLOSE_CORE_BRIEF</button>
+            <button onClick={() => setGuidance(null)} className="w-full bg-white/5 hover:bg-white/15 border border-white/10 text-white py-3 rounded-lg font-bold text-xs uppercase transition-all tracking-widest cursor-pointer">CLOSE_CORE_BRIEF</button>
           </div>
         </div>
       )}
