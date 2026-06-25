@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Plus, Play, Terminal, AlertTriangle,
@@ -20,7 +20,7 @@ const getMissionStatus = (tasks) => {
   const allSubtasks = tasks.flatMap(t => t.subtasks);
   const doneCount = allSubtasks.filter(st => st.status === 'done').length;
   const total = allSubtasks.length;
-  if (doneCount === total && total > 0) return { label: "MISSION SECURED", color: "text-emerald-400 border-emerald-500/10 bg-emerald-500/5 shadow-[0_0_10px_rgba(16,185,129,0.15)]" };
+  if (doneCount === total && total > 0) return { label: "MISSION SECURED", color: "text-emerald-400 border-white/10 bg-white/[0.02]" };
   return { label: `EXECUTING: ${doneCount}/${total}_NODES`, color: "text-blue-400 border-white/10 bg-white/[0.02]" };
 };
 
@@ -49,7 +49,7 @@ function App() {
     return saved ? JSON.parse(saved) : ["Orbit Dashboard ready. Standing by..."];
   });
   const [input, setInput] = useState({ goal: '', deadline: '', context: '' });
-  const [heroInput, setHeroInput] = useState('');
+  const [heroInput, setHeroInput] = useState(''); 
   const [loading, setLoading] = useState(false);
   const [guidance, setGuidance] = useState(null);
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
@@ -100,7 +100,7 @@ function App() {
         subtasks: subtasksWithTime.map(s => ({ ...s, id: uuidv4(), status: 'pending' })),
         intervention: null
       };
-      setTasks([newTask]);
+      setTasks([newTask]); 
       addLog(`Success: Tactical schedule verified.`);
       setInput({ goal: '', deadline: '', context: '' });
       setHeroInput('');
@@ -128,32 +128,32 @@ function App() {
   const handleStuck = async (taskId, subtaskId) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-
+    
     const subtask = task.subtasks.find(st => st.id === subtaskId);
     setLoading(true);
     addLog(`ALERT: Anomaly flagged at "${subtask.title}"`);
-
+    
     try {
       const result = await replanTask(task.subtasks, subtask.title, 'System Anomaly');
       const stuckIndex = task.subtasks.findIndex(st => st.id === subtaskId);
-
+      
       // PRESERVE THE PAST
       const preservedBefore = task.subtasks.slice(0, stuckIndex);
-
+      
       // PRESERVE THE FUTURE
       const preservedAfter = task.subtasks.slice(stuckIndex + 1);
-
+      
       // MAP THE NEW RECOVERY STEPS
       const newSubtasks = result.updatedSubtasks.map(s => ({
         ...s,
         id: uuidv4(),
         status: 'pending'
       }));
-
+      
       // COMBINE IN ORDER
       const mergedSubtasks = [...preservedBefore, ...newSubtasks, ...preservedAfter];
       const updatedWithTime = calculateTimeline(mergedSubtasks);
-
+      
       setTasks(prev => prev.map(t => {
         if (t.id === taskId) {
           return {
@@ -164,7 +164,7 @@ function App() {
         }
         return t;
       }));
-
+      
       addLog('Route recalibrated. Backup trajectory successfully merged.');
     } catch (error) {
       addLog('Error: Recalibration modules offline.');
@@ -252,7 +252,7 @@ function App() {
   const progressPercent = allSubtasks.length > 0 ? Math.round((doneCount / allSubtasks.length) * 100) : 0;
 
   return (
-    <div
+    <div 
       className="relative min-h-[100svh] overflow-x-hidden overflow-y-auto bg-cover bg-center flex flex-col justify-between"
       style={{
         backgroundImage: `url('https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260611_133301_d5f2a94a-b22e-4e4a-a6b6-eacdddf1f5b0.png&w=1280&q=85')`
@@ -260,9 +260,9 @@ function App() {
     >
       {/* GLOBAL SCIFI GRID OVERLAY */}
       <div className="scifi-grid" />
-
+      
       {/* THE GRASS OVERLAY SHADER */}
-      <img
+      <img 
         src="https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1781191264/grass_eam204.png"
         className="pointer-events-none absolute bottom-0 left-0 z-10 w-full select-none"
         alt="Ground shader"
@@ -315,7 +315,7 @@ function App() {
         </h1>
 
         {/* HERO SEARCH DECK */}
-        <form
+        <form 
           onSubmit={(e) => {
             e.preventDefault();
             handleCreatePlan(heroInput); // Call plan creation on enter
@@ -323,7 +323,7 @@ function App() {
           className="animate-fade-up [animation-delay:220ms] mt-5 sm:mt-6 w-full max-w-xl"
         >
           <div className="flex items-center gap-3 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-gray-200/50 pl-5 pr-1.5 py-1.5 shadow-lg shadow-gray-200/5">
-            <input
+            <input 
               type="text"
               placeholder="Input primary mission trajectory..."
               value={heroInput}
@@ -334,9 +334,9 @@ function App() {
               style={{ background: 'transparent', border: 'none' }}
               className="flex-1 bg-transparent text-sm sm:text-base text-gray-900 placeholder-gray-500 outline-none py-2"
             />
-
+            
             {/* INTEGRATED MIC TRIGGER */}
-            <button
+            <button 
               type="button"
               onClick={startListening}
               className={`p-2 rounded-full transition-all flex items-center justify-center ${isListeningUI ? 'bg-red-500 text-white animate-bounce' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
@@ -344,9 +344,9 @@ function App() {
               <Mic className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
             </button>
 
-            <button
+            <button 
               type="submit"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-900 text-white hover:scale-105 active:scale-95 transition-transform shrink-0 flex items-center justify-center shadow-md animate-pulse cursor-pointer"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-900 text-white hover:scale-105 active:scale-95 transition-transform shrink-0 flex items-center justify-center shadow-md animate-pulse"
             >
               <ArrowUp className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
             </button>
@@ -362,8 +362,8 @@ function App() {
 
       {/* MOBILE NATIVE CONSOLE VIEWPORT (Only visible on screens < lg) */}
       <div className="block lg:hidden w-[92%] max-w-xl mx-auto space-y-6 relative z-20 mb-16">
-
-        {/* MOBILE HUD STATUS PANEL (UPDATED TO GLASS DESIGN) */}
+        
+        {/* MOBILE HUD STATUS PANEL */}
         <div className="flex justify-between items-center p-4 glass-card text-[10px] font-black uppercase tracking-widest text-[#00f0ff] bg-cyan-950/10">
           <div className="flex items-center gap-3">
             <span>Decks: {getMissionStatus(tasks).label}</span>
@@ -374,7 +374,6 @@ function App() {
 
         {/* MOBILE ACTIVE TRAJECTORY PLAN */}
         {tasks.length === 0 ? (
-          /* UPDATED TO SEMI-TRANSPARENT GLASS STATE CARD */
           <div className="glass-card border-dashed border-white/10 rounded-xl h-44 flex flex-col items-center justify-center text-white/40 font-bold text-[8px] uppercase tracking-wider">
             <Terminal size={18} className="mb-2 opacity-20" />
             No Trajectory Active
@@ -397,7 +396,8 @@ function App() {
                           <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE 0{index + 1}</span>
                           <span className="text-slate-600">{st.scheduledStart}</span>
                         </div>
-                        <p className={`text-xs mt-1 ${st.status === 'done' ? 'line-through text-slate-700' : 'text-slate-200'}`}>
+                        {/* HIGH CONTRAST WHITE TEXT ON MOBILE NODE INSTRUCTIONS */}
+                        <p className={`text-xs mt-1 leading-relaxed ${st.status === 'done' ? 'line-through text-slate-500 font-medium' : 'text-white font-semibold'}`}>
                           {st.title}
                         </p>
                       </div>
@@ -422,8 +422,8 @@ function App() {
           ))
         )}
 
-        {/* MOBILE REAL-TIME TELEMETRY LOGS (UPDATED TO GLASS DESIGN) */}
-        <div className="premium-terminal p-4 h-64 flex flex-col justify-between">
+        {/* MOBILE REAL-TIME TELEMETRY LOGS */}
+        <div className="glass-card p-4 bg-black/60 h-64 flex flex-col justify-between">
           <span className="text-yellow-500 text-[9px] font-black uppercase tracking-wider mb-2">[ log_history ]</span>
           <div className="flex-1 overflow-y-auto space-y-2 font-mono text-[8px] leading-relaxed text-slate-500 h-full">
             {logs.slice(0, 15).map((log, i) => {
@@ -442,10 +442,10 @@ function App() {
       {/* LOWER DESKTOP RESPONSIVE MOCKUP WINDOW (Only visible on screens >= lg) */}
       <div className="hidden lg:block animate-hero-rise [animation-delay:620ms] relative z-20 w-[92%] sm:w-[84%] lg:w-[72%] max-w-4xl mx-auto shrink-0 -mb-10 sm:-mb-20 lg:-mb-32">
         <ScaledDashboard>
-
+          
           {/* THE MOCK BROWSER CHROME FRAME */}
           <div className="rounded-t-2xl overflow-hidden bg-[#1a1a1c] shadow-[0_-20px_80px_rgba(0,0,0,0.35)] ring-1 ring-white/10 text-left w-full h-[540px] flex flex-col">
-
+            
             {/* CHROME HEADER PANEL */}
             <div className="bg-[#242427] border-b border-white/5 px-4 py-2.5 flex items-center justify-between gap-4 select-none shrink-0">
               <div className="flex items-center gap-2">
@@ -475,10 +475,10 @@ function App() {
               </div>
             </div>
 
-            {/* INTEGRATED LIVE DASHBOARD VIEW (NOW SEMI-TRANSPARENT BLUE TINT!) */}
+            {/* INTEGRATED LIVE DASHBOARD VIEW (NOW TRANSPARENT FOR GLASS TO WORK!) */}
             <div className="flex flex-1 min-h-0 bg-[#0a0f1d]/45 backdrop-blur-md relative z-10">
               <div className="relative flex flex-col h-full w-full p-4 overflow-y-auto">
-
+                
                 {/* HUD STATUS PANEL */}
                 <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-3 text-[10px] font-black tracking-widest text-white uppercase">
                   <div className="flex items-center gap-3">
@@ -493,7 +493,7 @@ function App() {
 
                 {/* THE BENTO CONTAINER WORKSPACE */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
-
+                  
                   {/* LEFT: MANUAL CONTROL INPUT */}
                   <div className="lg:col-span-4 glass-card p-4 flex flex-col justify-between">
                     <div className="space-y-4">
@@ -527,13 +527,12 @@ function App() {
                   {/* CENTER: TIMELINE MONITOR */}
                   <div className="lg:col-span-5 flex flex-col min-h-0 overflow-y-auto">
                     {tasks.length === 0 && (
-                      /* UPDATED TO SEMI-TRANSPARENT GLASS CARD FOR DESKTOP */
                       <div className="glass-card border-dashed border-white/10 rounded-xl h-full flex flex-col items-center justify-center text-white/30 font-bold text-[8px] uppercase tracking-wider">
                         Trajectory Inactive
                       </div>
                     )}
                     {tasks.map(t => (
-                      <div key={t.id} className="glass-card overflow-hidden border-white/5 p-3 h-full overflow-y-auto">
+                      <div key={t.id} className="glass-card overflow-hidden bg-slate-950/40 border-white/5 p-3 h-full overflow-y-auto">
                         <div className="space-y-2">
                           {t.subtasks.map((st, index) => (
                             <div key={st.id} className="group relative p-2.5 rounded border border-white/5 bg-white/[0.01] hover:border-white/15 transition-all">
@@ -546,9 +545,9 @@ function App() {
                                     <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE 0{index + 1}</span>
                                     <span className="text-slate-600">{st.scheduledStart} — {st.scheduledEnd}</span>
                                   </div>
-
-                                  {/* THE TEXT WRAP OVERRIDE - NO CHIPPED TEXT OR TRUNCATION */}
-                                  <span className="text-[10px] whitespace-normal break-words block leading-relaxed text-slate-200">
+                                  
+                                  {/* HIGH CONTRAST WHITE TEXT ON PC NODE INSTRUCTIONS */}
+                                  <span className={`text-[10px] whitespace-normal break-words block leading-relaxed ${st.status === 'done' ? 'line-through text-slate-500 font-medium' : 'text-white font-semibold'}`}>
                                     {st.title}
                                   </span>
                                 </div>
@@ -575,23 +574,23 @@ function App() {
                     ))}
                   </div>
 
-                  {/* RIGHT: TELEMETRY STREAM (UPGRADED TO PREMIUM GLASS TERMINAL ON DESKTOP) */}
+                  {/* RIGHT: TELEMETRY STREAM */}
                   <div className="lg:col-span-3 premium-terminal flex flex-col h-full">
-
+                    
                     {/* TACTICAL DIAGNOSTIC LINE */}
                     <div className="flex justify-between items-center p-2.5 bg-white/[0.02] border-b border-white/5 font-mono text-[7px] tracking-wider text-slate-400 select-none shrink-0">
                       <span>BUF: SECURE_PASS</span>
                       <span>LATENCY: 12ms</span>
                       <span>CORE_TEMP: 32.5°C</span>
                     </div>
-
+                    
                     {/* SCROLLABLE LOG LIST */}
                     <div className="flex-1 p-3 overflow-y-auto font-mono text-[8px] leading-relaxed relative z-20 space-y-2">
                       {logs.slice(0, 15).map((log, i) => {
                         const isAgent = log.includes('Anomaly') || log.includes('Traj') || log.includes('Success');
                         const isSuccess = log.includes('Success') || log.includes('verified') || log.includes('COMPLETE');
                         const isChassis = log.includes('Perception') || log.includes('System');
-
+                        
                         return (
                           <div key={i} className={`flex gap-1.5 border-l pl-1.5 ${isAgent ? 'border-amber-500/50' : isSuccess ? 'border-green-500/50' : isChassis ? 'border-cyan-500/40' : 'border-white/5'}`}>
                             <span className={isAgent ? 'text-amber-500 font-bold' : isSuccess ? 'text-green-400' : isChassis ? 'text-cyan-400' : 'text-slate-400'}>
@@ -607,21 +606,21 @@ function App() {
                 </div>
               </div>
             </div>
-
+            
           </div>
         </ScaledDashboard>
       </div>
 
       {/* DUAL BUTTON SUCCESS MODAL */}
       {isMissionSecured && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-green-500/10 backdrop-blur-3xl animate-in fade-in duration-1000" role="dialog" aria-modal="true" aria-labelledby="success-title">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-green-500/10 backdrop-blur-3xl animate-in fade-in duration-1000">
           <div className="text-center p-12 border border-green-500 rounded-3xl bg-[#030712]/95 shadow-[0_0_100px_rgba(34,197,94,0.25)] max-w-lg">
             <div className="inline-block p-4 bg-green-500/10 border border-green-500/30 text-green-400 rounded-full mb-6 animate-bounce">
               <CheckCircle size={48} />
             </div>
-            <h2 id="success-title" className="text-4xl font-black italic text-white mb-2 tracking-tighter uppercase">Mission Secured</h2>
+            <h2 className="text-4xl font-black italic text-white mb-2 tracking-tighter uppercase">Mission Secured</h2>
             <p className="text-green-400 font-mono text-xs tracking-[0.2em] uppercase mb-8">All nodes successfully mapped and closed</p>
-
+            
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={downloadMissionDebrief}
@@ -642,7 +641,7 @@ function App() {
 
       {/* DATABASE MODAL */}
       {guidance && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 z-[100]" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 z-[100]">
           <div className="glass-card p-8 max-w-sm w-full border border-white/10 shadow-2xl">
             <div className="flex items-center gap-2 mb-4">
               <Lightbulb size={18} className="text-blue-400 animate-pulse" />
