@@ -127,9 +127,20 @@ export default function Antigravity({
 
         render();
 
+        // Pause animation when tab is backgrounded to save CPU/GPU
+        const handleVisibility = () => {
+            if (document.hidden) {
+                cancelAnimationFrame(animationFrameId);
+            } else {
+                render();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
         return () => {
             cancelAnimationFrame(animationFrameId);
             window.removeEventListener('resize', resizeCanvas);
+            document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, [count, magnetRadius, ringRadius, waveSpeed, waveAmplitude, particleSize, lerpSpeed, color, autoAnimate, particleVariance, rotationSpeed, depthFactor, pulseSpeed, particleShape, fieldStrength]);
 

@@ -109,10 +109,10 @@ npm install
 
 **2. Add your Gemini API key**
 
-In `src/gemini.js`:
+Create a `.env` file in the project's root folder and append your API key:
 
-```javascript
-const API_KEY = "YOUR_API_KEY_HERE";
+```env
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 **3. Run the dev server**

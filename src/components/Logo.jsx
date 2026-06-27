@@ -1,4 +1,3 @@
-import React from 'react';
 
 export const Logo = ({ className = "w-6 h-6" }) => {
     return (

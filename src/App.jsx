@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  Plus, Play, Terminal, AlertTriangle,
-  Lightbulb, Mic, CheckCircle, Trash2, Zap,
-  ChevronDown, ArrowUp, Sparkles, Activity,
+  Terminal,
+  Lightbulb, Mic, CheckCircle,
+  ArrowUp, Sparkles,
   PanelLeft, ChevronLeft, ChevronRight, Monitor,
   RotateCw, Share, Copy
 } from 'lucide-react';
@@ -41,12 +41,16 @@ const calculateTimeline = (subtasks) => {
 function App() {
   // --- 1. STATES ---
   const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('agent_tasks');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('agent_tasks');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
   const [logs, setLogs] = useState(() => {
-    const saved = localStorage.getItem('agent_logs');
-    return saved ? JSON.parse(saved) : ["Orbit Dashboard ready. Standing by..."];
+    try {
+      const saved = localStorage.getItem('agent_logs');
+      return saved ? JSON.parse(saved) : ["Orbit Dashboard ready. Standing by..."];
+    } catch { return ["Orbit Dashboard ready. Standing by..."]; }
   });
   const [input, setInput] = useState({ goal: '', deadline: '', context: '' });
   const [heroInput, setHeroInput] = useState(''); 
@@ -54,6 +58,7 @@ function App() {
   const [guidance, setGuidance] = useState(null);
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
   const [isListeningUI, setIsListeningUI] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Fluctuating HUD Telemetries
   const [coords, setCoords] = useState({ lat: "45.0933", alt: "108.433" });
@@ -67,8 +72,10 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const addLog = (msg) => setLogs(prev => [`[${new Date().toLocaleTimeString([], { hour12: false })}] ${msg}`, ...prev].slice(0, 100));
+
   // --- 2. VOICE CAPTURE ---
-  const { startListening } = useVoice((text) => {
+  const { startListening, isSupported: isVoiceSupported } = useVoice((text) => {
     setHeroInput(text);
     setInput(prev => ({ ...prev, goal: text }));
     addLog(`Perception Module: Voice goal parsed: "${text}"`);
@@ -79,12 +86,11 @@ function App() {
     localStorage.setItem('agent_logs', JSON.stringify(logs));
   }, [tasks, logs]);
 
-  const addLog = (msg) => setLogs(prev => [`[${new Date().toLocaleTimeString([], { hour12: false })}] ${msg}`, ...prev]);
-
   // --- 3. TRAJECTORY ENGINE ---
   const handleCreatePlan = async (goalToUse) => {
     const targetGoal = goalToUse || input.goal;
     if (!targetGoal) return;
+    if (tasks.length > 0 && !window.confirm("Replace active mission with new trajectory?")) return;
     setLoading(true);
     addLog(`Initiating system trajectory mapping: "${targetGoal}"`);
     try {
@@ -102,10 +108,12 @@ function App() {
       };
       setTasks([newTask]); 
       addLog(`Success: Tactical schedule verified.`);
+      setErrorMsg('');
       setInput({ goal: '', deadline: '', context: '' });
       setHeroInput('');
-    } catch (error) {
+    } catch {
       addLog('Error: Trajectory computation aborted.');
+      setErrorMsg('Trajectory computation failed. Check your API key or try again.');
     } finally {
       setLoading(false);
     }
@@ -130,6 +138,7 @@ function App() {
     if (!task) return;
     
     const subtask = task.subtasks.find(st => st.id === subtaskId);
+    if (!subtask) return;
     setLoading(true);
     addLog(`ALERT: Anomaly flagged at "${subtask.title}"`);
     
@@ -166,8 +175,9 @@ function App() {
       }));
       
       addLog('Route recalibrated. Backup trajectory successfully merged.');
-    } catch (error) {
+    } catch {
       addLog('Error: Recalibration modules offline.');
+      setErrorMsg('Recalibration failed. Retry or continue to next node.');
     } finally {
       setLoading(false);
     }
@@ -178,13 +188,15 @@ function App() {
     const text = task.intervention;
 
     // Real Action: Copy to clipboard
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => {});
 
     addLog("AGENT ACTION: Intervention text copied to clipboard.");
     addLog("SYSTEM: Launching external communication protocol...");
 
-    // Open Mail client with the draft
-    window.location.href = `mailto:?subject=Project Alert: ${task.goal}&body=${encodeURIComponent(text)}`;
+    // Open Mail client with the draft using a temporary link to prevent tab side-effects or popup blocks
+    const mailtoLink = document.createElement('a');
+    mailtoLink.href = `mailto:?subject=Project Alert: ${encodeURIComponent(task.goal)}&body=${encodeURIComponent(text)}`;
+    mailtoLink.click();
 
     setTimeout(() => {
       addLog("SUCCESS: Intervention deployed and archived.");
@@ -203,8 +215,9 @@ function App() {
     try {
       const tip = await getTaskGuidance(subtaskTitle, taskContext);
       setGuidance({ title: subtaskTitle, text: tip });
-    } catch (error) {
+    } catch {
       addLog('Error: Database search timed out.');
+      setErrorMsg('Knowledge query failed. Try again.');
     } finally {
       setIsGuidanceLoading(false);
     }
@@ -214,7 +227,8 @@ function App() {
     if (window.confirm("Purge memory bank systems?")) {
       setTasks([]);
       setLogs(["Console cleared. Offline standby."]);
-      localStorage.clear();
+      localStorage.removeItem('agent_tasks');
+      localStorage.removeItem('agent_logs');
     }
   };
 
@@ -228,6 +242,7 @@ function App() {
     link.href = url;
     link.download = `Orbit_Telemetry.txt`;
     link.click();
+    URL.revokeObjectURL(url);
     addLog("SYSTEM: Mission Debrief exported successfully.");
   };
 
@@ -247,15 +262,12 @@ function App() {
   // PURE BOOLEAN SUCCESS METRIC (IMMUNE TO STRING ERRORS!)
   const isMissionSecured = tasks.length > 0 && tasks.every(t => t.subtasks.every(st => st.status === 'done'));
 
-  const allSubtasks = tasks.flatMap(t => t.subtasks);
-  const doneCount = allSubtasks.filter(s => s.status === 'done').length;
-  const progressPercent = allSubtasks.length > 0 ? Math.round((doneCount / allSubtasks.length) * 100) : 0;
 
   return (
     <div 
       className="relative min-h-[100svh] overflow-x-hidden overflow-y-auto bg-cover bg-center flex flex-col justify-between"
       style={{
-        backgroundImage: `url('https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260611_133301_d5f2a94a-b22e-4e4a-a6b6-eacdddf1f5b0.png&w=1280&q=85')`
+        backgroundImage: `url('/background.webp')`
       }}
     >
       {/* GLOBAL SCIFI GRID OVERLAY */}
@@ -263,7 +275,7 @@ function App() {
       
       {/* THE GRASS OVERLAY SHADER */}
       <img 
-        src="https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1781191264/grass_eam204.png"
+        src="/grass_eam204.png"
         className="pointer-events-none absolute bottom-0 left-0 z-10 w-full select-none"
         alt="Ground shader"
       />
@@ -322,31 +334,45 @@ function App() {
           }}
           className="animate-fade-up [animation-delay:220ms] mt-5 sm:mt-6 w-full max-w-xl"
         >
+          {/* ERROR BANNER */}
+          {errorMsg && (
+            <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono uppercase tracking-wider">
+              <span className="flex-1 text-left">⚠ {errorMsg}</span>
+              <button type="button" onClick={() => setErrorMsg('')} aria-label="Dismiss error" className="text-amber-400 hover:text-amber-200 shrink-0 leading-none">✕</button>
+            </div>
+          )}
           <div className="flex items-center gap-3 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-gray-200/50 pl-5 pr-1.5 py-1.5 shadow-lg shadow-gray-200/5">
             <input 
               type="text"
               placeholder="Input primary mission trajectory..."
               value={heroInput}
+              disabled={loading}
               onChange={(e) => {
                 setHeroInput(e.target.value);
                 setInput(prev => ({ ...prev, goal: e.target.value }));
               }}
               style={{ background: 'transparent', border: 'none' }}
-              className="flex-1 bg-transparent text-sm sm:text-base text-gray-900 placeholder-gray-500 outline-none py-2"
+              className="flex-1 bg-transparent text-sm sm:text-base text-gray-900 placeholder-gray-500 outline-none py-2 disabled:opacity-50"
             />
             
-            {/* INTEGRATED MIC TRIGGER */}
-            <button 
-              type="button"
-              onClick={startListening}
-              className={`p-2 rounded-full transition-all flex items-center justify-center ${isListeningUI ? 'bg-red-500 text-white animate-bounce' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
-            >
-              <Mic className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
-            </button>
+            {/* INTEGRATED MIC TRIGGER — only shown on supported browsers */}
+            {isVoiceSupported && (
+              <button 
+                type="button"
+                onClick={startListening}
+                disabled={loading}
+                aria-label={isListeningUI ? 'Listening...' : 'Start voice input'}
+                className={`p-2 rounded-full transition-all flex items-center justify-center ${isListeningUI ? 'bg-red-500 text-white animate-bounce' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent'}`}
+              >
+                <Mic className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+              </button>
+            )}
 
             <button 
               type="submit"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-900 text-white hover:scale-105 active:scale-95 transition-transform shrink-0 flex items-center justify-center shadow-md animate-pulse"
+              disabled={loading || !heroInput.trim()}
+              aria-label="Deploy mission trajectory"
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-900 text-white transition-transform shrink-0 flex items-center justify-center shadow-md ${(!loading && heroInput.trim()) ? 'hover:scale-105 active:scale-95 animate-pulse' : 'opacity-40 cursor-not-allowed'}`}
             >
               <ArrowUp className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
             </button>
@@ -393,7 +419,7 @@ function App() {
                     <div className="flex justify-between items-start gap-2">
                       <div>
                         <div className="flex items-center gap-1.5 text-[8px] font-black mb-1">
-                          <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE 0{index + 1}</span>
+                          <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE {String(index + 1).padStart(2, '0')}</span>
                           <span className="text-slate-600">{st.scheduledStart}</span>
                         </div>
                         {/* HIGH CONTRAST WHITE TEXT ON MOBILE NODE INSTRUCTIONS */}
@@ -401,7 +427,7 @@ function App() {
                           {st.title}
                         </p>
                       </div>
-                      <button onClick={() => handleGuideMe(st.title, t.context)} className="p-1.5 text-slate-500 hover:text-cyan-400"><Lightbulb size={14} /></button>
+                      <button onClick={() => handleGuideMe(st.title, t.context)} aria-label={`Get guidance for: ${st.title}`} className="p-1.5 text-slate-500 hover:text-cyan-400"><Lightbulb size={14} /></button>
                     </div>
                     {st.status === 'pending' && (
                       <div className="flex gap-2 mt-4">
@@ -430,7 +456,7 @@ function App() {
               const isAgent = log.includes('Anomaly') || log.includes('Traj') || log.includes('Success');
               return (
                 <div key={i} className={`flex gap-1.5 border-l pl-1.5 ${isAgent ? 'border-cyan-500/40' : 'border-white/5'}`}>
-                  <span className={isAgent ? 'text-cyan-400' : 'text-slate-400'}>{log.split(']')[1]}</span>
+                  <span className={isAgent ? 'text-cyan-400' : 'text-slate-400'}>{log.includes(']') ? log.split(']')[1] : log}</span>
                 </div>
               );
             })}
@@ -542,7 +568,7 @@ function App() {
                               <div className="flex justify-between items-start gap-2">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5 text-[7px] font-black">
-                                    <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE 0{index + 1}</span>
+                                    <span className="bg-white/5 border border-white/10 text-white px-1.5 py-0.2 rounded uppercase">NODE {String(index + 1).padStart(2, '0')}</span>
                                     <span className="text-slate-600">{st.scheduledStart} — {st.scheduledEnd}</span>
                                   </div>
                                   
@@ -551,7 +577,7 @@ function App() {
                                     {st.title}
                                   </span>
                                 </div>
-                                <button onClick={() => handleGuideMe(st.title, t.context)} className="p-1 text-slate-600 hover:text-cyan-400 transition-colors">
+                                <button onClick={() => handleGuideMe(st.title, t.context)} aria-label={`Get guidance for: ${st.title}`} className="p-1 text-slate-600 hover:text-cyan-400 transition-colors">
                                   <Lightbulb size={10} />
                                 </button>
                               </div>
@@ -614,11 +640,11 @@ function App() {
       {/* DUAL BUTTON SUCCESS MODAL */}
       {isMissionSecured && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-green-500/10 backdrop-blur-3xl animate-in fade-in duration-1000">
-          <div className="text-center p-12 border border-green-500 rounded-3xl bg-[#030712]/95 shadow-[0_0_100px_rgba(34,197,94,0.25)] max-w-lg">
+          <div role="dialog" aria-modal="true" aria-labelledby="success-modal-title" className="text-center p-12 border border-green-500 rounded-3xl bg-[#030712]/95 shadow-[0_0_100px_rgba(34,197,94,0.25)] max-w-lg">
             <div className="inline-block p-4 bg-green-500/10 border border-green-500/30 text-green-400 rounded-full mb-6 animate-bounce">
               <CheckCircle size={48} />
             </div>
-            <h2 className="text-4xl font-black italic text-white mb-2 tracking-tighter uppercase">Mission Secured</h2>
+            <h2 id="success-modal-title" className="text-4xl font-black italic text-white mb-2 tracking-tighter uppercase">Mission Secured</h2>
             <p className="text-green-400 font-mono text-xs tracking-[0.2em] uppercase mb-8">All nodes successfully mapped and closed</p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -639,18 +665,29 @@ function App() {
         </div>
       )}
 
-      {/* DATABASE MODAL */}
-      {guidance && (
+      {/* DATABASE MODAL — shows spinner during load, content on arrival */}
+      {(isGuidanceLoading || guidance) && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center p-6 z-[100]">
-          <div className="glass-card p-8 max-w-sm w-full border border-white/10 shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-labelledby="modal-title" className="glass-card p-8 max-w-sm w-full border border-white/10 shadow-2xl">
             <div className="flex items-center gap-2 mb-4">
               <Lightbulb size={18} className="text-blue-400 animate-pulse" />
               <h2 id="modal-title" className="text-white font-black uppercase tracking-widest text-xs">INTEL_DATABASE_BRIEF</h2>
             </div>
-            <div className="bg-black/40 p-5 border border-white/5 rounded mb-6 text-slate-200 text-xs leading-relaxed font-mono italic">
-              "{guidance.text}"
-            </div>
-            <button onClick={() => setGuidance(null)} className="w-full bg-white/5 hover:bg-white/15 border border-white/10 text-white py-3 rounded-lg font-bold text-xs uppercase transition-all tracking-widest cursor-pointer">CLOSE_CORE_BRIEF</button>
+            {isGuidanceLoading ? (
+              <div className="bg-black/40 p-5 border border-white/5 rounded mb-6 flex items-center justify-center gap-3 text-slate-400 font-mono text-xs">
+                <div className="w-3 h-3 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+                QUERYING KNOWLEDGE BASE...
+              </div>
+            ) : (
+              <div className="bg-black/40 p-5 border border-white/5 rounded mb-6 text-slate-200 text-xs leading-relaxed font-mono italic">
+                "{guidance.text}"
+              </div>
+            )}
+            <button
+              onClick={() => setGuidance(null)}
+              disabled={isGuidanceLoading}
+              className="w-full bg-white/5 hover:bg-white/15 border border-white/10 text-white py-3 rounded-lg font-bold text-xs uppercase transition-all tracking-widest cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >CLOSE_CORE_BRIEF</button>
           </div>
         </div>
       )}

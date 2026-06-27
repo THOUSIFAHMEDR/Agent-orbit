@@ -1,11 +1,9 @@
 export const useVoice = (onResult, setIsListeningUI) => {
-    const startListening = () => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const isSupported = !!SpeechRecognition;
 
-        if (!SpeechRecognition) {
-            alert("Please use Chrome for Voice support.");
-            return;
-        }
+    const startListening = () => {
+        if (!isSupported) return;
 
         const recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
@@ -25,5 +23,5 @@ export const useVoice = (onResult, setIsListeningUI) => {
         recognition.start();
     };
 
-    return { startListening };
-};
+    return { startListening, isSupported };
+};

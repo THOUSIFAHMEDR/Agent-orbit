@@ -13,10 +13,9 @@ if (!API_KEY) {
 const genAI = new GoogleGenerativeAI(API_KEY || "dummy_key_to_prevent_crash");
 
 const MODELS = [
-  "gemini-3.5-flash",
-  "gemini-3.1-flash-lite",
-  "gemini-flash-latest",
-  "gemini-2.5-flash"
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash"
 ];
 
 const sleep = (ms) => new Promise(res => setTimeout(res, ms));
@@ -30,7 +29,7 @@ const cleanJson = (text) => {
     const end = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
     if (start !== Infinity && end !== -1) return text.substring(start, end + 1);
     return text;
-  } catch (e) { return text; }
+  } catch { return text; }
 };
 
 async function callGemini(prompt, isJson = false) {
@@ -85,7 +84,8 @@ export const generatePlan = async (goal, deadline, context) => {
 };
 
 export const replanTask = async (currentTasks, stuckTaskTitle, reason) => {
-  const prompt = `Stuck on "${stuckTaskTitle}" because: ${reason}. Return ONLY JSON: {"updatedSubtasks": [{"title": "Recovery", "duration_mins": 20}], "intervention": "Draft message"}`;
+  const taskList = currentTasks.map((t, i) => `${i + 1}. ${t.title}`).join('; ');
+  const prompt = `Existing plan: [${taskList}]. Stuck on "${stuckTaskTitle}" because: ${reason}. Return ONLY JSON: {"updatedSubtasks": [{"title": "Recovery", "duration_mins": 20}], "intervention": "Draft message"}`;
 
   try {
     const text = await callGemini(prompt, true);

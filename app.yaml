@@ -1,0 +1,15 @@
+runtime: python39
+instance_class: F1
+
+handlers:
+- url: /assets
+  static_dir: dist/assets
+  secure: always
+- url: /(.*\.(json|ico|png|svg|txt))$
+  static_files: dist/\1
+  upload: dist/(.*\.(json|ico|png|svg|txt))$
+  secure: always
+- url: /.*
+  static_files: dist/index.html
+  upload: dist/index.html
+  secure: always
