@@ -132,16 +132,44 @@ npx vite preview
 
 ## ☁️ Deploying to Google Cloud
 
-This project is deployed via **Google AI Studio's Cloud deployment flow** (Cloud Run under the hood):
+The repository includes pre-configured deployment manifests for three production hosting paths:
 
-1. Push the project to a GitHub repository.
-2. In [Google AI Studio](https://ai.google.dev/gemini-api/docs/aistudio-deploying), select **Deploy** and connect the repository.
-3. Set the `API_KEY` environment variable in the deployment configuration (do not commit it to the repo).
-4. Deploy — AI Studio builds the app and provisions a Cloud Run service with a public URL.
-5. Confirm the URL loads correctly, then add it to the **Live App** link at the top of this README.
+### Option A: Google Cloud Run (Containerized via Cloud Build)
+Utilizes the custom multi-stage [Dockerfile](file:///Dockerfile) and [nginx.conf](file:///nginx.conf).
 
-> Full reference: https://ai.google.dev/gemini-api/docs/aistudio-deploying
+1. Build and deploy containerized assets using Google Cloud Build:
+   ```bash
+   gcloud builds submit --config cloudbuild.yaml
+   ```
+2. Cloud Build automatically creates the Docker image, registers it, and deploys it as a serverless Cloud Run instance with a public HTTPS URL.
+
+### Option B: Google App Engine (Standard Environment)
+Utilizes the [app.yaml](file:///app.yaml) static file handler configurations.
+
+1. Deploy the compiled `/dist` bundle directly:
+   ```bash
+   gcloud app deploy
+   ```
+
+### Option C: Firebase Hosting (Google's static web provider)
+Utilizes the [firebase.json](file:///firebase.json) rewrite configs to handle single-page routing natively.
+
+1. Initialize and host directly:
+   ```bash
+   firebase deploy --only hosting
+   ```
 
 ---
 
-<p align="center"><i>Built for Google Cloud deployment.</i></p>
+## ⚡ Audit Optimizations & V2 Release Features
+
+The codebase has been refactored to achieve pristine performance, UX, and compliance:
+- **Local Asset Isolation** — Heavy background WebP and grass PNG layers are hosted directly in `/public`, resolving tracking blocker errors in secure browsers (Edge/Brave) and enabling offline asset rendering.
+- **Canvas Visibility Management** — Canvas physics loops dynamically pause when the browser tab is out of focus, reducing active background GPU and CPU cycles to zero.
+- **Accessibility Integration** — Active elements include explicit `aria-label` tags, and modals conform to standards with `role="dialog"` and `aria-modal="true"`.
+- **Form Loading Safety** — Trajectory inputs, perception controls, and submission buttons disable dynamically during active requests to prevent concurrent execution states.
+- **Escalation URI Safety** — The dynamic recovery mailto trigger is safely encoded via `encodeURIComponent` to prevent special character breakages.
+
+---
+
+<p align="center"><i>Pruned, optimized, and ready for Google Cloud deployment.</i></p>
