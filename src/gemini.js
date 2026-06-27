@@ -13,9 +13,9 @@ if (!API_KEY) {
 const genAI = new GoogleGenerativeAI(API_KEY || "dummy_key_to_prevent_crash");
 
 const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash"
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-flash-latest"
 ];
 
 const sleep = (ms) => new Promise(res => setTimeout(res, ms));

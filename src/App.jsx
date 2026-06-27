@@ -249,14 +249,17 @@ function App() {
   // --- ANTIGRAVITY COLOR ENGINES ---
   const currentStatus = getMissionStatus(tasks).label;
   let themeSpeed = 0.2;
-  let particleColor = "#00f0ff"; // Default Orbit Blue
+  let particleColor = "#3b82f6"; // Default Calm Blue for Standby
 
   if (currentStatus === "MISSION SECURED" || currentStatus === "MISSION COMPLETE") {
     themeSpeed = 0.05;
-    particleColor = "#10b981"; // Success Green
+    particleColor = "#10b981"; // Peaceful Green for Completion
   } else if (tasks.some(t => t.intervention)) {
     themeSpeed = 1.3;
-    particleColor = "#ffaa00"; // Alert Amber
+    particleColor = "#ef4444"; // Rapid Red for Alert
+  } else if (tasks.length > 0) {
+    themeSpeed = 0.2;
+    particleColor = "#00f0ff"; // Executing/Active Orbit Blue/Cyan
   }
 
   // PURE BOOLEAN SUCCESS METRIC (IMMUNE TO STRING ERRORS!)
